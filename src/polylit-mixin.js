@@ -53,20 +53,7 @@ const PolylitMixinImplementation = (superclass) => {
             return;
           }
 
-          const userUpdated = instance.__proto__.updated;
-
-          instance.updated = function (changedProperties) {
-            userUpdated.call(this, changedProperties);
-
-            const observers = instance.constructor.__observers;
-
-            changedProperties.forEach((v, k) => {
-              const observer = observers.get(k);
-              if (observer !== undefined) {
-                instance[observer](instance[k], v);
-              }
-            });
-          };
+          instance.__patchUpdated();
         });
       }
 
@@ -85,6 +72,32 @@ const PolylitMixinImplementation = (superclass) => {
       super.firstUpdated();
 
       this.ready();
+    }
+
+    /** @private */
+    __patchUpdated() {
+      if (this.__updatedPatched) {
+        return;
+      }
+
+      const proto = Object.getPrototypeOf(this);
+      const userUpdated = proto.updated;
+
+      this.updated = function (props) {
+        userUpdated.call(this, props);
+
+        this.__runObservers(props, proto.constructor.__observers);
+      };
+    }
+
+    /** @private */
+    __runObservers(props, observers) {
+      props.forEach((v, k) => {
+        const observer = observers.get(k);
+        if (observer !== undefined && this[observer]) {
+          this[observer](this[k], v);
+        }
+      });
     }
   }
 

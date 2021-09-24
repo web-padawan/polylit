@@ -115,10 +115,17 @@ describe('PolylitMixin', () => {
           constructor() {
             super();
             this.calls = [];
+            this.updateCount = 0;
           }
 
           render() {
             return html`${this.value}`;
+          }
+
+          updated(props) {
+            super.updated(props);
+
+            this.updateCount += 1;
           }
 
           _valueChanged(value, oldValue) {
@@ -158,6 +165,13 @@ describe('PolylitMixin', () => {
         element._setText('abcde');
         await element.updateComplete;
         expect(element.count).to.equal(5);
+      });
+
+      it('should not affect updated method defined by the user', async () => {
+        expect(element.updateCount).to.equal(1);
+        element.value = 'foo';
+        await element.updateComplete;
+        expect(element.updateCount).to.equal(2);
       });
     });
 
