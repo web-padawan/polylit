@@ -32,6 +32,57 @@ describe('PolylitMixin', () => {
     });
   });
 
+  describe('reflectToAttribute', () => {
+    let element;
+
+    const tag = defineCE(
+      class extends PolylitMixin(LitElement) {
+        static get properties() {
+          return {
+            name: {
+              type: String,
+              reflectToAttribute: true
+            },
+
+            disabled: {
+              type: Boolean,
+              reflectToAttribute: true
+            }
+          };
+        }
+
+        render() {
+          return html`<button ?disabled="${this.disabled}">${this.name}</button>`;
+        }
+      }
+    );
+
+    beforeEach(async () => {
+      element = fixtureSync(`<${tag}></${tag}>`);
+      await element.updateComplete;
+    });
+
+    it('should reflect string property to attribute', async () => {
+      element.name = 'foo';
+      await element.updateComplete;
+      expect(element.getAttribute('name')).to.equal('foo');
+
+      element.name = undefined;
+      await element.updateComplete;
+      expect(element.hasAttribute('name')).to.be.false;
+    });
+
+    it('should reflect boolean property to attribute', async () => {
+      element.disabled = true;
+      await element.updateComplete;
+      expect(element.hasAttribute('disabled')).to.be.true;
+
+      element.disabled = false;
+      await element.updateComplete;
+      expect(element.hasAttribute('disabled')).to.be.false;
+    });
+  });
+
   describe('readOnly', () => {
     let element;
 

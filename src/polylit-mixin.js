@@ -14,6 +14,14 @@ function upper(name) {
 
 const PolylitMixinImplementation = (superclass) => {
   class PolylitMixinClass extends superclass {
+    static createProperty(name, options) {
+      if (options.reflectToAttribute) {
+        options.reflect = true;
+      }
+
+      super.createProperty(name, options);
+    }
+
     static getPropertyDescriptor(name, key, options) {
       const defaultDescriptor = super.getPropertyDescriptor(name, key, options);
 
