@@ -29,6 +29,45 @@ const PolylitMixinImplementation = (superclass) => {
         };
       }
 
+      if (options.observer) {
+        const method = options.observer;
+
+        if (!this.__observers) {
+          this.__observers = new Map();
+          // eslint-disable-next-line no-prototype-builtins
+        } else if (!this.hasOwnProperty('__observers')) {
+          // clone any existing observers (superclasses)
+          const observers = this.__observers;
+          this.__observers = new Map();
+          observers.forEach((v, k) => this.__observers.set(k, v));
+        }
+
+        // set this method
+        this.__observers.set(name, method);
+
+        this.addInitializer((instance) => {
+          if (!instance[method]) {
+            console.warn(`observer method ${method} not defined`);
+            return;
+          }
+
+          const userUpdated = instance.__proto__.updated;
+
+          instance.updated = function (changedProperties) {
+            userUpdated.call(this, changedProperties);
+
+            const observers = instance.constructor.__observers;
+
+            changedProperties.forEach((v, k) => {
+              const observer = observers.get(k);
+              if (observer !== undefined) {
+                instance[observer](instance[k], v);
+              }
+            });
+          };
+        });
+      }
+
       return defaultDescriptor;
     }
 
