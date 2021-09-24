@@ -1,11 +1,12 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { fixture, defineCE } from '@open-wc/testing-helpers';
+import { fixtureSync, defineCE } from '@vaadin/testing-helpers';
 import { LitElement, html } from 'lit';
 import { PolylitMixin } from '../src/polylit-mixin.js';
 
 describe('PolylitMixin', () => {
   describe('ready', () => {
+    let element;
     let readySpy = sinon.spy();
 
     const tag = defineCE(
@@ -20,11 +21,13 @@ describe('PolylitMixin', () => {
       }
     );
 
-    beforeEach(async () => {
-      await fixture(`<${tag}></${tag}>`);
+    beforeEach(() => {
+      element = fixtureSync(`<${tag}></${tag}>`);
     });
 
-    it('should call ready when element is created', () => {
+    it('should call ready when element update is complete', async () => {
+      expect(readySpy.calledOnce).to.be.false;
+      await element.updateComplete;
       expect(readySpy.calledOnce).to.be.true;
     });
   });
@@ -54,7 +57,8 @@ describe('PolylitMixin', () => {
     );
 
     beforeEach(async () => {
-      element = await fixture(`<${tag}></${tag}>`);
+      element = fixtureSync(`<${tag}></${tag}>`);
+      await element.updateComplete;
     });
 
     it('should not set property marked as readOnly using setter', async () => {
