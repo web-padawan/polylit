@@ -96,6 +96,16 @@ describe('PolylitMixin', () => {
                 observer: '_valueChanged'
               },
 
+              text: {
+                type: String,
+                readOnly: true,
+                observer: '_textChanged'
+              },
+
+              count: {
+                type: Number
+              },
+
               calls: {
                 type: Array
               }
@@ -113,6 +123,12 @@ describe('PolylitMixin', () => {
 
           _valueChanged(value, oldValue) {
             this.calls.push([value, oldValue]);
+          }
+
+          _textChanged(value) {
+            if (value) {
+              this.count = value.length;
+            }
           }
         }
       );
@@ -136,6 +152,12 @@ describe('PolylitMixin', () => {
         element.value = 'bar';
         await element.updateComplete;
         expect(element.calls[1]).to.deep.equal(['bar', 'foo']);
+      });
+
+      it('should run single property observer for read-only property', async () => {
+        element._setText('abcde');
+        await element.updateComplete;
+        expect(element.count).to.equal(5);
       });
     });
 

@@ -9,6 +9,8 @@ const PolylitMixinImplementation = (superclass) => {
     static getPropertyDescriptor(name, key, options) {
       const defaultDescriptor = super.getPropertyDescriptor(name, key, options);
 
+      let result = defaultDescriptor;
+
       if (options.readOnly) {
         const setter = defaultDescriptor.set;
 
@@ -19,7 +21,7 @@ const PolylitMixinImplementation = (superclass) => {
           };
         });
 
-        return {
+        result = {
           get: defaultDescriptor.get,
           set() {
             // Do nothing, property is read-only.
@@ -68,7 +70,7 @@ const PolylitMixinImplementation = (superclass) => {
         });
       }
 
-      return defaultDescriptor;
+      return result;
     }
 
     /** @protected */
