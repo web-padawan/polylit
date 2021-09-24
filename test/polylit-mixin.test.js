@@ -96,6 +96,15 @@ describe('PolylitMixin', () => {
                 observer: '_valueChanged'
               },
 
+              label: {
+                type: String,
+                observer: '_labelChanged'
+              },
+
+              hasLabel: {
+                type: Boolean
+              },
+
               text: {
                 type: String,
                 readOnly: true,
@@ -122,14 +131,18 @@ describe('PolylitMixin', () => {
             return html`${this.value}`;
           }
 
-          updated(props) {
-            super.updated(props);
+          willUpdate(props) {
+            super.willUpdate(props);
 
             this.updateCount += 1;
           }
 
           _valueChanged(value, oldValue) {
             this.calls.push([value, oldValue]);
+          }
+
+          _labelChanged(value) {
+            this.hasLabel = !!value;
           }
 
           _textChanged(value) {
@@ -167,7 +180,13 @@ describe('PolylitMixin', () => {
         expect(element.count).to.equal(5);
       });
 
-      it('should not affect updated method defined by the user', async () => {
+      it('should include property set in observer to the same update', async () => {
+        element.label = 'foo';
+        await element.updateComplete;
+        expect(element.hasLabel).to.be.true;
+      });
+
+      it('should not affect willUpdate method defined by the user', async () => {
         expect(element.updateCount).to.equal(1);
         element.value = 'foo';
         await element.updateComplete;
@@ -287,6 +306,72 @@ describe('PolylitMixin', () => {
         expect(console.warn.firstCall.args[0]).to.include('label');
         expect(console.warn.secondCall.args[0]).to.include('value');
       });
+    });
+  });
+
+  describe('notify', () => {
+    let element;
+
+    const tag = defineCE(
+      class extends PolylitMixin(LitElement) {
+        static get properties() {
+          return {
+            value: {
+              type: String,
+              observer: '_valueChanged',
+              notify: true
+            },
+
+            hasValue: {
+              type: String,
+              notify: true
+            },
+
+            loading: {
+              type: Boolean,
+              readOnly: true,
+              notify: true
+            }
+          };
+        }
+
+        render() {
+          return html`${this.value}`;
+        }
+
+        _valueChanged(value) {
+          this.hasValue = !!value;
+        }
+      }
+    );
+
+    beforeEach(async () => {
+      element = fixtureSync(`<${tag}></${tag}>`);
+      await element.updateComplete;
+    });
+
+    it('should fire notification event on property change', async () => {
+      const spy = sinon.spy();
+      element.addEventListener('value-changed', spy);
+      element.value = 'foo';
+      await element.updateComplete;
+      expect(spy.calledOnce).to.be.true;
+    });
+
+    it('should fire notification event for property set in observer', async () => {
+      const spy = sinon.spy();
+      element.addEventListener('has-value-changed', spy);
+      element.value = 'foo';
+      await element.updateComplete;
+      expect(spy.calledOnce).to.be.true;
+    });
+
+    it('should fire notification event for read-only property', async () => {
+      const spy = sinon.spy();
+      element.addEventListener('loading-changed', spy);
+      element._setLoading(true);
+      await element.updateComplete;
+      expect(spy.calledOnce).to.be.true;
     });
   });
 });

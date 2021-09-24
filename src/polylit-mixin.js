@@ -1,5 +1,13 @@
 import { dedupeMixin } from '@open-wc/dedupe-mixin';
 
+const caseMap = {};
+
+const CAMEL_TO_DASH = /([A-Z])/g;
+
+function camelToDash(camel) {
+  return caseMap[camel] || (caseMap[camel] = camel.replace(CAMEL_TO_DASH, '-$1').toLowerCase());
+}
+
 function upper(name) {
   return name[0].toUpperCase() + name.substring(1);
 }
@@ -53,7 +61,25 @@ const PolylitMixinImplementation = (superclass) => {
             return;
           }
 
-          instance.__patchUpdated();
+          instance.__patchUpdate();
+        });
+      }
+
+      if (options.notify) {
+        if (!this.__notifyProps) {
+          this.__notifyProps = new Set();
+          // eslint-disable-next-line no-prototype-builtins
+        } else if (!this.hasOwnProperty('__notifyProps')) {
+          // clone any existing observers (superclasses)
+          const notifyProps = this.__notifyProps;
+          this.__notifyProps = new Set(notifyProps);
+        }
+
+        // set this method
+        this.__notifyProps.add(name);
+
+        this.addInitializer((instance) => {
+          instance.__patchUpdate();
         });
       }
 
@@ -75,19 +101,28 @@ const PolylitMixinImplementation = (superclass) => {
     }
 
     /** @private */
-    __patchUpdated() {
-      if (this.__updatedPatched) {
+    __patchUpdate() {
+      if (this.__updatePatched) {
         return;
       }
 
-      const proto = Object.getPrototypeOf(this);
-      const userUpdated = proto.updated;
+      // Use willUpdate to make sure property changes triggered
+      // by observers are included to the same update batch.
+      const willUpdate = Object.getPrototypeOf(this).willUpdate;
 
-      this.updated = function (props) {
-        userUpdated.call(this, props);
+      this.willUpdate = function (props) {
+        willUpdate.call(this, props);
 
-        this.__runObservers(props, proto.constructor.__observers);
+        if (this.constructor.__observers) {
+          this.__runObservers(props, this.constructor.__observers);
+        }
+
+        if (this.constructor.__notifyProps) {
+          this.__runNotifyProps(props, this.constructor.__notifyProps);
+        }
       };
+
+      this.__updatePatched = true;
     }
 
     /** @private */
@@ -96,6 +131,21 @@ const PolylitMixinImplementation = (superclass) => {
         const observer = observers.get(k);
         if (observer !== undefined && this[observer]) {
           this[observer](this[k], v);
+        }
+      });
+    }
+
+    /** @private */
+    __runNotifyProps(props, notifyProps) {
+      props.forEach((_, k) => {
+        if (notifyProps.has(k)) {
+          this.dispatchEvent(
+            new CustomEvent(`${camelToDash(k)}-changed`, {
+              detail: {
+                value: this[k]
+              }
+            })
+          );
         }
       });
     }

@@ -21,3 +21,4 @@ The following features are included:
 - `ready()` method: called on `firstUpdated()`.
 - `readOnly` flag to define [read-only properties](https://polymer-library.polymer-project.org/3.0/docs/devguide/properties#read-only).
 - `observer` flag to declare [simple observers](https://polymer-library.polymer-project.org/3.0/docs/devguide/observers#simple-observers).
+- `notify` flag to fire [property notification events](https://polymer-library.polymer-project.org/3.0/docs/devguide/properties#notify).
